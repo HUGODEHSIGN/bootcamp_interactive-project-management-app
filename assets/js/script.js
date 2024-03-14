@@ -5,6 +5,7 @@ const projectFormEl = $('#project-form');
 const projectNameInputEl = $('#project-name-input');
 const projectTypeInputEl = $('#project-type-input');
 const projectDateInputEl = $('#taskDueDate');
+console.log(projectDisplayEl);
 
 // ? Helper function that displays the time, this is called every second in the setInterval function below.
 function displayTime() {
@@ -14,18 +15,38 @@ function displayTime() {
 
 function readProjectsFromStorage() {
   // TODO: Retrieve projects from localStorage and parse the JSON to an array. If there are no projects in localStorage, initialize an empty array and return it.
+  const projects = localStorage.getItem('projects');
+
+  if (!projects) {
+    return [];
+  }
+
+  return JSON.parse(projects);
 }
 
 // TODO: Create a function that accepts an array of projects, stringifys them, and saves them in localStorage.
+function saveProjectsToStorage(projects) {
+  localStorage.setItem('projects', JSON.stringify(projects));
+}
 
 // ? Creates a project card from the information passed in `project` parameter and returns it.
 function createProjectCard(project) {
   // TODO: Create a new card element and add the classes `card`, `project-card`, `draggable`, and `my-3`. Also add a `data-project-id` attribute and set it to the project id.
+  const taskCard = $(
+    `<div class="card project-card draggable my-3" data-project-id=${project.id}>`
+  );
   // TODO: Create a new card header element and add the classes `card-header` and `h4`. Also set the text of the card header to the project name.
+  const cardHeader = $('<div class="card-header h4">').text(project.name);
   // TODO: Create a new card body element and add the class `card-body`.
+  const cardBody = $('<div class="card-body">');
   // TODO: Create a new paragraph element and add the class `card-text`. Also set the text of the paragraph to the project type.
+  const projectType = $('<div class="card-text">').text(project.type);
   // TODO: Create a new paragraph element and add the class `card-text`. Also set the text of the paragraph to the project due date.
+  const projectDue = $('<div class="card-text">').text(project.dueDate);
   // TODO: Create a new button element and add the classes `btn`, `btn-danger`, and `delete`. Also set the text of the button to "Delete" and add a `data-project-id` attribute and set it to the project id.
+  const dltBtn = $(
+    `<div class="btn btn-danger delete" data-project-id=${project.id}>`
+  ).text('Delete');
 
   // ? Sets the card background color based on due date. Only apply the styles if the dueDate exists and the status is not done.
   if (project.dueDate && project.status !== 'done') {
@@ -42,7 +63,9 @@ function createProjectCard(project) {
   }
 
   // TODO: Append the card description, card due date, and card delete button to the card body.
+  cardBody.append(projectType).append(projectDue).append(dltBtn);
   // TODO: Append the card header and card body to the card.
+  taskCard.append(cardHeader).append(cardBody);
 
   // ? Return the card so it can be appended to the correct lane.
   return taskCard;
@@ -63,6 +86,17 @@ function printProjectData() {
 
   // TODO: Loop through projects and create project cards for each status
   for (let project of projects) {
+    console.log(project);
+    const projectCard = createProjectCard(project);
+    if (project.status === 'to-do') {
+      $('#todo-cards').append(projectCard);
+    }
+    if (project.status === 'in-progress') {
+      $('#in-progress-cards').append(projectCard);
+    }
+    if (project.status === 'done') {
+      $('#done-cards').append(projectCard);
+    }
   }
 
   // ? Use JQuery UI to make task cards draggable
@@ -84,11 +118,15 @@ function printProjectData() {
 }
 
 // ? Removes a project from local storage and prints the project data back to the page
-function handleDeleteProject() {
-  const projectId = $(this).attr('data-project-id');
-  const projects = readProjectsFromStorage();
+function handleDeleteProject(event) {
+  console.log($(this).parent().parent().attr('data-project-id'));
+  const projectId = $(this).parent().parent().attr('data-project-id');
+  let projects = readProjectsFromStorage();
 
   // TODO: Loop through the projects array and remove the project with the matching id.
+  projects = projects.filter((project) => {
+    return project.id !== projectId;
+  });
 
   // ? We will use our helper function to save the projects to localStorage
   saveProjectsToStorage(projects);
@@ -102,6 +140,9 @@ function handleProjectFormSubmit(event) {
   event.preventDefault();
 
   // TODO: Get the project name, type, and due date from the form
+  const projectName = projectNameInputEl.val();
+  const projectType = projectTypeInputEl.val();
+  const projectDate = projectDateInputEl.val();
 
   // ? Create a new project object with the data from the form
   const newProject = {
@@ -115,6 +156,7 @@ function handleProjectFormSubmit(event) {
 
   // ? Pull the projects from localStorage and push the new project to the array
   const projects = readProjectsFromStorage();
+  console.log(projects);
   projects.push(newProject);
 
   // ? Save the updated projects array to localStorage
@@ -124,6 +166,7 @@ function handleProjectFormSubmit(event) {
   printProjectData();
 
   // TODO: Clear the form inputs
+  projectFormEl.children('ul').children('li').children().val('');
 }
 
 // ? This function is called when a card is dropped into a lane. It updates the status of the project and saves it to localStorage. You can see this function is called in the `droppable` method below.
@@ -150,9 +193,9 @@ function handleDrop(event, ui) {
 
 // ? Add event listener to the form element, listen for a submit event, and call the `handleProjectFormSubmit` function.
 projectFormEl.on('submit', handleProjectFormSubmit);
-
+const cardContainer = $('.card-container');
 // TODO: Add an event listener to listen for the delete buttons. Use event delegation to call the `handleDeleteProject` function.
-projectDisplayEl.on('click', '.btn-delete-project', handleDeleteProject);
+cardContainer.on('click', '.delete', handleDeleteProject);
 
 // ? Call the `displayTime` function once on page load and then every second after that.
 displayTime();
